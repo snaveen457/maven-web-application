@@ -1,0 +1,27 @@
+node
+{
+def mavenHome = tool name: "maven 3.9.0"
+stage ('CheckoutCode'){
+git branch: 'development', credentialsId: 'af55cb54-7ec0-4414-8c0e-4a8b999dadd8', url: 'https://github.com/snaveen457/maven-web-application.git'
+}
+
+stage('Build'){
+sh "${mavenHome}/bin/mvn clean package"
+}
+ 
+ stage('ExecuteSonarQubeReport'){
+ sh "${mavenHome}/bin/mvn sonar:sonar"
+ }
+ stage('UploadArtifactintonexus'){
+ sh "${mavenHome}/bin/mvn deploy"
+  }
+ stage('DeployAPpintoTomcat'){
+ sshagent(['ae8a6ec4-f887-428d-8d23-a777d300da28']){
+ sh "scp -o  StrictHostKeyChecking=no target/maven-web-application.war ec2-user@18.202.251.119:/opt/tomcat/webapps/"
+ }
+ }
+ stage('sendmailnotification')
+ mail bcc: '', body: '''Build Over.
+
+Regards''', cc: 'snaveenapt457@gmail.com', from: '', replyTo: '', subject: 'Build over', to: 'snaveenstar777@gmail.com'
+}
