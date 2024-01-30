@@ -6,6 +6,8 @@ echo "The Build name is:  ${env.BUILD_NUMBER} "
 
 properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '5', numToKeepStr: '5')), [$class: 'JobLocalConfiguration', changeReasonComment: ''], pipelineTriggers([pollSCM('* * * * *')])])
 
+buildName 'Dev - ${BUILD_NUMBER}'
+
 def mavenHome = tool name: "maven3.9.6"
 
 //Checkout Stage
