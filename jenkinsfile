@@ -1,27 +1,33 @@
-node
-{
-def mavenHome = tool name: "maven 3.9.0"
-stage ('CheckoutCode'){
-git branch: 'development', credentialsId: 'af55cb54-7ec0-4414-8c0e-4a8b999dadd8', url: 'https://github.com/snaveen457/maven-web-application.git'
+node{
+
+def mavenHome = tool name: "maven3.9.6"
+
+//Checkout Stage
+stage('checkoutcode'){
+  git branch: 'development', credentialsId: '978cded7-af66-423e-8eff-ad317fba4883', url: 'https://github.com/snaveen457/maven-web-application.git'
 }
 
+//Build Stage
 stage('Build'){
-sh "${mavenHome}/bin/mvn clean package"
+sh "$mavenHome/bin/mvn clean package"
 }
- 
- stage('ExecuteSonarQubeReport'){
- sh "${mavenHome}/bin/mvn sonar:sonar"
- }
- stage('UploadArtifactintonexus'){
- sh "${mavenHome}/bin/mvn deploy"
-  }
- stage('DeployAPpintoTomcat'){
- sshagent(['ae8a6ec4-f887-428d-8d23-a777d300da28']){
- sh "scp -o  StrictHostKeyChecking=no target/maven-web-application.war ec2-user@52.211.28.104:/opt/tomcat/webapps/"
- }
- }
- stage('sendmailnotification')
- mail bcc: '', body: '''Build Over.
 
-Regards''', cc: 'snaveenapt457@gmail.com', from: '', replyTo: '', subject: 'Build over', to: 'snaveenstar777@gmail.com'
+//Generate SonarQube Repoort
+stage('SonarQubeReport'){
+sh "$mavenHome/bin/mvn sonar:sonar"
 }
+
+//upload Artifact into Artifactory rep
+stage('upload Artifact into Artifactory'){
+sh "$mavenHome/bin/mvn deploy"
+}
+
+//Deploy App into Tomcat Server
+stage('deployAppintotomcat'){
+sshagent(['1a18cfa3-6014-4ee0-a7d1-b0ddae32668b']) {
+   sh  "scp -o StrictHostKeyChecking=no target/maven-web-application.war ubuntu@18.171.249.99:/opt/tomcat/webapps"
+}
+}
+
+
+}//Node Closing
