@@ -1,41 +1,45 @@
-node{
-    
-echo "The Node name is:  ${env.NODE_NAME} "
-echo "The Job name is: ${env.JOB_NAME} "
-echo "The Build name is:  ${env.BUILD_NUMBER} "
+node {
+    echo "The Node name is: ${env.NODE_NAME}"
+    echo "The Job name is: ${env.JOB_NAME}"
+    echo "The Build name is: ${env.BUILD_NUMBER}"
 
-properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '5', numToKeepStr: '5')), [$class: 'JobLocalConfiguration', changeReasonComment: ''], pipelineTriggers([pollSCM('* * * * *')])])
+    properties([
+        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '5', numToKeepStr: '5')),
+        [$class: 'JobLocalConfiguration', changeReasonComment: ''],
+        pipelineTriggers([pollSCM('* * * * *')])
+    ])
 
-buildName 'Dev - ${BUILD_NUMBER}'
+    buildName "Dev - ${env.BUILD_NUMBER}"
 
-def mavenHome = tool name: "maven3.9.6"
+    def mavenHome = tool name: "maven3.9.6"
 
-//Checkout Stage
-stage('checkoutcode'){
-  git branch: 'development', credentialsId: '978cded7-af66-423e-8eff-ad317fba4883', url: 'https://github.com/snaveen457/maven-web-application.git'
+    // Checkout Stage
+    stage('checkoutcode') {
+        git branch: 'development', credentialsId: '978cded7-af66-423e-8eff-ad317fba4883', url: 'https://github.com/snaveen457/maven-web-application.git'
+    }
+
+    // Build Stage
+    stage('Build') {
+        sh "${mavenHome}/bin/mvn clean package"
+    }
+
+    // Generate SonarQube Report
+    stage('SonarQubeReport') {
+        sh "${mavenHome}/bin/mvn sonar:sonar"
+    }
+
+    // Upload Artifact into Artifactory repo
+    stage('upload Artifact into Artifactory') {
+        sh "${mavenHome}/bin/mvn deploy"
+    }
+
+    // Deploy App into Tomcat Server
+    stage('deployAppintotomcat') {
+        sshagent(['e9fddaf9-74c9-4d16-8832-1f90d3bfb9d0']) {
+            sh """
+                scp -o StrictHostKeyChecking=no target/maven-web-application.war ubuntu@18.134.130.179:~
+                ssh ubuntu@18.134.130.179 "sudo mv ~/maven-web-application.war /opt/tomcat/webapps/"
+            """
+        }
+    }
 }
-
-//Build Stage
-stage('Build'){
-sh "$mavenHome/bin/mvn clean package"
-}
-
-//Generate SonarQube Repoort
-stage('SonarQubeReport'){
-sh "$mavenHome/bin/mvn sonar:sonar"
-}
-
-//upload Artifact into Artifactory rep
-stage('upload Artifact into Artifactory'){
-sh "$mavenHome/bin/mvn deploy"
-}
-
-//Deploy App into Tomcat Server
-stage('deployAppintotomcat'){
-sshagent(['29a2928d-d751-4c21-817b-11240fff6128']) {
-   sh  "scp -o StrictHostKeyChecking=no target/maven-web-application.war ubuntu@18.134.130.179:/opt/tomcat/webapps"
-}
-}
-
-
-}//Node Closing
